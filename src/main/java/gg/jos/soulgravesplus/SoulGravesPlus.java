@@ -2,21 +2,32 @@ package gg.jos.soulgravesplus;
 
 import de.oliver.fancyholograms.api.FancyHologramsPlugin;
 import de.oliver.fancyholograms.api.HologramManager;
+import dev.faultyfunctions.soulgraves.utils.Soul;
 import gg.jos.soulgravesplus.commands.ReloadCommand;
 import gg.jos.soulgravesplus.events.hologram.decentholograms.SoulExplodeDecentHologramListener;
 import gg.jos.soulgravesplus.events.hologram.decentholograms.SoulPickupDecentHologramListener;
 import gg.jos.soulgravesplus.events.hologram.decentholograms.SoulSpawnDecentHologramListener;
+import gg.jos.soulgravesplus.events.hologram.decentholograms.SoulUpdaterDecentHologram;
 import gg.jos.soulgravesplus.events.hologram.fancyholograms.SoulExplodeFancyHologramListener;
 import gg.jos.soulgravesplus.events.hologram.fancyholograms.SoulPickupFancyHologramListener;
 import gg.jos.soulgravesplus.events.hologram.fancyholograms.SoulSpawnFancyHologramListener;
+import gg.jos.soulgravesplus.events.hologram.fancyholograms.SoulUpdaterFancyHologram;
 import gg.jos.soulgravesplus.events.logger.SoulExplodeLoggerListener;
 import gg.jos.soulgravesplus.events.logger.SoulPickupLoggerListener;
 import gg.jos.soulgravesplus.events.logger.SoulSpawnLoggerListener;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 public final class SoulGravesPlus extends JavaPlugin {
+
+    // Formatting Config
+    public DateTimeFormatter dateTimeFormatter;
+    public String timeFormat;
 
     // Logger Config
     public boolean loggerEnabled;
@@ -37,13 +48,14 @@ public final class SoulGravesPlus extends JavaPlugin {
     public String[] hologramBackgroundColor;
     public List<String> hologramLines;
     public String hologramManager; // Unused but exists for future needs
+    public long hologramUpdateTicks;
 
     @Override
     public void onEnable() {
 
         if (getServer().getPluginManager().getPlugin("SoulGraves") == null) {
             this.getLogger().warning("SoulGraves not found, disabling SoulGravesPlus");
-            getServer().getPluginManager().disablePlugin(this);
+            this.getServer().getPluginManager().disablePlugin(this);
         }
 
         // Logger Messages
@@ -53,91 +65,142 @@ public final class SoulGravesPlus extends JavaPlugin {
 
         // Config & Feature Subsets
         saveDefaultConfig();
-        updateConfig(this);
+        updateConfig();
 
         // Commands
         this.getCommand("soulgravesplus").setExecutor(new ReloadCommand(this));
 
     }
 
-    public void updateConfig(SoulGravesPlus plugin) {
-        // Logger Features
-        plugin.loggerEnabled = plugin.getConfig().getBoolean("logger.enabled");
-        plugin.logSoulSpawns = plugin.getConfig().getBoolean("logger.log-soul-spawns");
-        plugin.logSoulPickups = plugin.getConfig().getBoolean("logger.log-soul-pickups");
-        plugin.logSoulExplosions = plugin.getConfig().getBoolean("logger.log-soul-explosions");
+    public void updateConfig() {
+        // Option Features
+        this.dateTimeFormatter = DateTimeFormatter.ofPattern(this.getConfig().getString("options.date-format", "yyyy-MM-dd HH:mm:ss"));
+        this.timeFormat = this.getConfig().getString("options.time-format", "{m}m {s}s");
 
-        plugin.logSoulSpawnsMessage = plugin.getConfig().getString("logger.log-soul-spawns-message");
-        plugin.logSoulPickupsMessage = plugin.getConfig().getString("logger.log-soul-pickups-message");
-        plugin.logSoulExplosionsMessage = plugin.getConfig().getString("logger.log-soul-explosions-message");
+        // Logger Features
+        this.loggerEnabled = this.getConfig().getBoolean("logger.enabled", true);
+        this.logSoulSpawns = this.getConfig().getBoolean("logger.log-soul-spawns", true);
+        this.logSoulPickups = this.getConfig().getBoolean("logger.log-soul-pickups", true);
+        this.logSoulExplosions = this.getConfig().getBoolean("logger.log-soul-explosions", true);
+
+        this.logSoulSpawnsMessage = this.getConfig().getString(
+                "logger.log-soul-spawns-message",
+                "\u001B[37m[SoulTracker] \u001B[92mSoul spawned for \u001B[93m{soulOwner}\u001B[92m at \u001B[93m{x} {y} {z}\u001B[0m"
+        );
+        this.logSoulPickupsMessage = this.getConfig().getString(
+                "logger.log-soul-pickups-message",
+                "\u001B[37m[SoulTracker] \u001B[93m{soulOwner}\u001B[92m picked up a soul at \u001B[93m{x} {y} {z}\u001B[0m"
+        );
+        this.logSoulExplosionsMessage = this.getConfig().getString(
+                "logger.log-soul-explosions-message",
+                "\u001B[37m[SoulTracker] \u001B[91mSoul for \u001B[93m{soulOwner}\u001B[91m exploded at \u001B[93m{x} {y} {z}\u001B[0m"
+        );
 
         // Hologram Features
-        plugin.hologramEnabled = plugin.getConfig().getBoolean("hologram.enabled");
+        this.hologramEnabled = this.getConfig().getBoolean("hologram.enabled", true);
 
-        plugin.hologramXOffset = plugin.getConfig().getDouble("hologram.x-offset");
-        plugin.hologramYOffset = plugin.getConfig().getDouble("hologram.y-offset");
-        plugin.hologramZOffset = plugin.getConfig().getDouble("hologram.z-offset");
+        this.hologramXOffset = this.getConfig().getDouble("hologram.x-offset", 0.0);
+        this.hologramYOffset = this.getConfig().getDouble("hologram.y-offset", 0.3);
+        this.hologramZOffset = this.getConfig().getDouble("hologram.z-offset", 0.0);
 
-        plugin.hologramBackground = plugin.getConfig().getBoolean("hologram.background");
-        plugin.hologramBackgroundColor = plugin.getConfig().getString("hologram.background-color").split(",");
+        this.hologramBackground = this.getConfig().getBoolean("hologram.custom-background", false);
+        this.hologramBackgroundColor = this.getConfig().getString("hologram.background-color", "1,100,255,79").split(",");
 
-        plugin.hologramLines = plugin.getConfig().getStringList("hologram.lines");
+        this.hologramLines = this.getConfig().getStringList("hologram.lines");
+        this.hologramUpdateTicks = this.getConfig().getLong("hologram.update-ticks", 10L);
 
-        featureSubsets(plugin);
+        featureSubsets();
 
     }
 
-    private void featureSubsets(SoulGravesPlus plugin) {
+    private void featureSubsets() {
 
         // Logger Feature
-        if (plugin.loggerEnabled) {
-            loggerFeatures(plugin);
+        if (this.loggerEnabled) {
+            loggerFeatures();
         } else {
-            plugin.getLogger().warning("Logger features are disabled in the config.yml.");
+            this.getLogger().warning("Logger features are disabled in the config.yml.");
         }
 
         // Hologram Features
-        if (plugin.hologramEnabled) {
-            hologramFeatures(plugin);
+        if (this.hologramEnabled) {
+            hologramFeatures();
         } else {
-            plugin.getLogger().warning("Hologram features are disabled in the config.yml.");
+            this.getLogger().warning("Hologram features are disabled in the config.yml.");
         }
 
     }
 
-    private void loggerFeatures(SoulGravesPlus plugin) {
+    private void loggerFeatures() {
 
-        plugin.getServer().getPluginManager().registerEvents(new SoulSpawnLoggerListener(this, plugin), this);
-        plugin.getServer().getPluginManager().registerEvents(new SoulPickupLoggerListener(this, plugin), this);
-        plugin.getServer().getPluginManager().registerEvents(new SoulExplodeLoggerListener(this, plugin), this);
+        this.getServer().getPluginManager().registerEvents(new SoulSpawnLoggerListener(this), this);
+        this.getServer().getPluginManager().registerEvents(new SoulPickupLoggerListener(this), this);
+        this.getServer().getPluginManager().registerEvents(new SoulExplodeLoggerListener(this), this);
 
-        plugin.getLogger().info("Logger features enabled.");
+        this.getLogger().info("Logger features enabled.");
     }
 
-    private void hologramFeatures(SoulGravesPlus plugin) {
-        if (plugin.getServer().getPluginManager().getPlugin("FancyHolograms") != null) {
+    private void hologramFeatures() {
+        if (this.getServer().getPluginManager().getPlugin("FancyHolograms") != null) {
 
-            plugin.hologramManager = "FancyHolograms";
+            this.hologramManager = "FancyHolograms";
 
             HologramManager manager = FancyHologramsPlugin.get().getHologramManager();
 
-            plugin.getServer().getPluginManager().registerEvents(new SoulSpawnFancyHologramListener(this, manager, this), this);
-            plugin.getServer().getPluginManager().registerEvents(new SoulPickupFancyHologramListener(this, manager), this);
-            plugin.getServer().getPluginManager().registerEvents(new SoulExplodeFancyHologramListener(this, manager), this);
+            this.getServer().getPluginManager().registerEvents(new SoulSpawnFancyHologramListener(this, manager), this);
+            this.getServer().getPluginManager().registerEvents(new SoulPickupFancyHologramListener(this, manager), this);
+            this.getServer().getPluginManager().registerEvents(new SoulExplodeFancyHologramListener(this, manager), this);
+            this.getServer().getScheduler().runTaskTimer(this, new SoulUpdaterFancyHologram(this, manager), this.hologramUpdateTicks, this.hologramUpdateTicks);
 
-            plugin.getLogger().info("FancyHolograms found! Hologram features enabled.");
-        } else if (plugin.getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
+            this.getLogger().info("FancyHolograms found! Hologram features enabled.");
+        } else if (this.getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
 
-            plugin.hologramManager = "DecentHolograms";
+            this.hologramManager = "DecentHolograms";
 
-            plugin.getServer().getPluginManager().registerEvents(new SoulSpawnDecentHologramListener(this, this), this);
-            plugin.getServer().getPluginManager().registerEvents(new SoulPickupDecentHologramListener(this), this);
-            plugin.getServer().getPluginManager().registerEvents(new SoulExplodeDecentHologramListener(this), this);
+            this.getServer().getPluginManager().registerEvents(new SoulSpawnDecentHologramListener(this), this);
+            this.getServer().getPluginManager().registerEvents(new SoulPickupDecentHologramListener(this), this);
+            this.getServer().getPluginManager().registerEvents(new SoulExplodeDecentHologramListener(this), this);
+            this.getServer().getScheduler().runTaskTimer(this, new SoulUpdaterDecentHologram(this), this.hologramUpdateTicks, this.hologramUpdateTicks);
 
-            plugin.getLogger().info("DecentHolograms found! Hologram features enabled.");
+            this.getLogger().info("DecentHolograms found! Hologram features enabled.");
         } else {
-            plugin.getLogger().warning("FancyHolograms or DecentHolograms not found! Hologram features disabled.");
+            this.getLogger().warning("FancyHolograms or DecentHolograms not found! Hologram features disabled.");
         }
     }
-    
+
+    public String formatTime(int time) {
+        if (time < 0) time = 0;
+        int days = time / 86400;
+        int hours = (time % 86400) / 3600;
+        int minutes = (time % 3600) / 60;
+        int seconds = time % 60;
+        return this.timeFormat
+                .replace("{d}", days + "")
+                .replace("{h}", hours + "")
+                .replace("{s}", seconds + "")
+                .replace("{m}", minutes + "");
+    }
+
+    public List<String> parseHologramLines(Soul soul) {
+        // Define placeholders
+        String soulOwner = Bukkit.getOfflinePlayer(soul.getOwnerUUID()).getName();
+        String formattedTime = LocalDateTime.now().format(this.dateTimeFormatter);
+        int soulTime = soul.getTimeLeft();
+        String formattedSoulTime = this.formatTime(soulTime);
+        int invAmount = soul.getInventory().size();
+        int expAmount = soul.getXp();
+
+        // Replace placeholders in the config lines
+        return this.hologramLines.stream()
+                .map(line -> line
+                        .replace("{soulOwner}", Objects.requireNonNullElse(soulOwner, "unknown"))
+                        .replace("{formattedTime}", formattedTime)
+                        .replace("{formattedSoulTime}", formattedSoulTime)
+                        .replace("{soulTime}", soulTime + "")
+                        .replace("{invAmount}", invAmount + "")
+                        .replace("{expAmount}", expAmount + "")
+                        .replace("&", "§"))
+                .toList();
+    }
+
 }

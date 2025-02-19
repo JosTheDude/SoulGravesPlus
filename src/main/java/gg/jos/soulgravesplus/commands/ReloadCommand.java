@@ -5,16 +5,17 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 public class ReloadCommand implements CommandExecutor {
-    private final SoulGravesPlus plugin;
+    private final SoulGravesPlus soulGravesPlus;
 
-    public ReloadCommand(SoulGravesPlus plugin) {
-        this.plugin = plugin;
+    public ReloadCommand(SoulGravesPlus soulGravesPlus) {
+        this.soulGravesPlus = soulGravesPlus;
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
 
         if (args.length == 0 || !args[0].equalsIgnoreCase("reload")) {
             sender.sendMessage("§cUsage: /soulgravesplus reload");
@@ -26,8 +27,8 @@ public class ReloadCommand implements CommandExecutor {
             return true;
         }
 
-        plugin.reloadConfig();
-        plugin.updateConfig(plugin);
+        this.soulGravesPlus.reloadConfig();
+        this.soulGravesPlus.updateConfig();
 
         sender.sendMessage("§aSoulGravesPlus configuration reloaded.");
         return true;

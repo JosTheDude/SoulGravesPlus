@@ -48,7 +48,8 @@ hologram:
     # Placeholders:
     # {soulOwner} for soul owner (player)
     # {formattedTime} for formatted time of death
-    # DEPRECATED: {soulTime} for configured time for soul expiry (non-updating)
+    # {soulTime} for configured raw time for soul expiry
+    # {formattedSoulTime} for configured time for soul expiry
     lines:
         - ""
         - "&b☠ &lSOUL GRAVE&r &8» &f{soulOwner}"
@@ -56,3 +57,15 @@ hologram:
         - ""
         - "&b [ᴛᴏᴜᴄʜ ᴛʜᴇ ɢʀᴀᴠᴇ ᴛᴏ ʀᴇᴛʀɪᴇᴠᴇ ᴇꜱꜱᴇɴᴄᴇ] &r"
         - ""
+
+    # How fast should we update the holograms? (in ticks)
+    update-ticks: 10
+
+options:
+
+    # Date format
+    date-format: "yyyy-MM-dd HH:mm:ss"
+
+    # Time format
+    # {d} for days, {h} for hours, {m} for minutes, {s} for seconds
+    time-format: "{m}m {s}s"
