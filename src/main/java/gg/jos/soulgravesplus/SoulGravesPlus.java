@@ -12,6 +12,7 @@ import gg.jos.soulgravesplus.events.logger.SoulPickupLoggerListener;
 import gg.jos.soulgravesplus.events.logger.SoulSpawnLoggerListener;
 import gg.jos.soulgravesplus.utils.UpdateChecker;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -51,6 +52,7 @@ public final class SoulGravesPlus extends JavaPlugin {
     public double hologramZOffset;
     public boolean hologramBackground;
     public String[] hologramBackgroundColor;
+    public boolean hologramTextShadow;
     public List<String> hologramLines;
     public String hologramManager;
     public long hologramUpdateTicks;
@@ -148,6 +150,8 @@ public final class SoulGravesPlus extends JavaPlugin {
 
         this.hologramBackground = this.getConfig().getBoolean("hologram.custom-background", false);
         this.hologramBackgroundColor = this.getConfig().getString("hologram.background-color", "1,100,255,79").split(",");
+
+        this.hologramTextShadow = this.getConfig().getBoolean("hologram.text-shadow", false);
 
         this.hologramLines = this.getConfig().getStringList("hologram.lines");
         this.hologramUpdateTicks = this.getConfig().getLong("hologram.update-ticks", 10L);
@@ -262,10 +266,21 @@ public final class SoulGravesPlus extends JavaPlugin {
     }
 
     public List<String> parseHologramLines(Soul soul) {
-        long timeLeft = soul.getExpireTime() - System.currentTimeMillis();
+        long timeLeft;
+        OfflinePlayer player = Bukkit.getOfflinePlayer(soul.getOwnerUUID());
+
+        if (getServer().getPluginManager().getPlugin("SoulGraves").getConfig().getBoolean("offline-owner-timer-freeze", false)) {
+            if (!player.isOnline() && soul.getFreezeTime() > 0) {
+                timeLeft = soul.getTimeLeft() * 1000L;
+            } else {
+                timeLeft = soul.getExpireTime() - System.currentTimeMillis();
+            }
+        } else {
+            timeLeft = soul.getExpireTime() - System.currentTimeMillis();
+        }
 
         // Define placeholders
-        String soulOwner = Bukkit.getOfflinePlayer(soul.getOwnerUUID()).getName();
+        String soulOwner = player.getName();
         String formattedDeathTime = this.dateTimeFormatter.format(new Date(soul.getDeathTime()));
         String formattedExpireTime = this.dateTimeFormatter.format(new Date(soul.getExpireTime()));
         String formattedTimeLeft = this.formatTime(timeLeft);

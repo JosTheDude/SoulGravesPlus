@@ -48,6 +48,10 @@ hologram:
     custom-background: false # enable custom background
     background-color: "1,100,255,79" # ARGB format
 
+    # Configure the text shadow of the hologram
+    # This has no effect if you are using DecentHolograms
+    text-shadow: false # enable text shadow
+
     # Configure the text of the hologram, using MiniMessage and/or Legacy Formatting
 
     # Placeholders:

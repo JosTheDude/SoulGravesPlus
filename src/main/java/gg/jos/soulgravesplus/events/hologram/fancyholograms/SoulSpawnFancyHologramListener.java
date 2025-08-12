@@ -62,6 +62,10 @@ public class SoulSpawnFancyHologramListener implements Listener {
             hologramData.setBackground(Color.fromARGB(a, r, g, b));
         }
 
+        if (this.soulGravesPlus.hologramTextShadow) {
+            hologramData.setTextShadow(true);
+        }
+
         Hologram hologram = manager.create(hologramData);
         manager.addHologram(hologram);
     }
