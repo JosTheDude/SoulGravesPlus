@@ -33,7 +33,7 @@ public class SoulPickupLoggerListener implements Listener {
         String soulOwner = player.getName();
         String worldName = soulGravesPlus.getWorldAlias(soulLocation.getWorld().getName());
 
-        this.soulGravesPlus.getLogger().info(this.soulGravesPlus.logSoulSpawnsMessage
+        this.soulGravesPlus.getLogger().info(this.soulGravesPlus.logSoulPickupsMessage
                 .replace("{soulOwner}", soulOwner)
                 .replace("{x}", String.valueOf(soulLocation.getBlockX()))
                 .replace("{y}", String.valueOf(soulLocation.getBlockY()))
